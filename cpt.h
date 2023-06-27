@@ -157,6 +157,9 @@ public:
 				full[c] += data[index][c] = v[c];
 			}
 
+			if (++index >= full.size() )
+				index = 0;
+
 			return *this;
 		}
 
