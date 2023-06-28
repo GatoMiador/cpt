@@ -8,7 +8,13 @@
 #ifndef CPT_H_
 #define CPT_H_
 
-template<unsigned int PHASES, unsigned int SAMPLE_RATE, unsigned int FREQ> class CPT {
+/** Calculates de CPT parcels.
+ *
+ * @tparam PHASES Number of phases
+ * @tparam SAMPLING_RATE Sampling rate
+ * @tparam FREQ Mains frequency
+**/
+template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ> class CPT {
 public:
 	/** Class for manipulating arrays. **/
 	template<typename Z, size_t N> struct Array {
@@ -163,7 +169,7 @@ public:
 				full[c] += data[index][c] = v[c];
 			}
 
-			if (++index >= (SAMPLE_RATE/FREQ) )
+			if (++index >= (SAMPLING_RATE/FREQ) )
 				index = 0;
 
 			return *this;
@@ -171,13 +177,13 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		C1 result(void) const noexcept {
-			const auto r = full / (SAMPLE_RATE/FREQ);
+			const auto r = full / (SAMPLING_RATE/FREQ);
 
 			return C1(r);
 		}
 	private:
 		C2 full { 0 };
-		C1 data[SAMPLE_RATE/ FREQ] { 0 };
+		C1 data[SAMPLING_RATE/ FREQ] { 0 };
 		size_t index = 0;
 	};
 
@@ -192,7 +198,7 @@ public:
 		UIntegral & feed(const power_vector & v) noexcept {
 			const auto r = power_double_vector(v);
 
-			val += r / SAMPLE_RATE;
+			val += r / SAMPLING_RATE;
 			maf.feed(r);
 
 			return *this;
