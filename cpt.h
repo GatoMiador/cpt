@@ -157,7 +157,7 @@ public:
 				full[c] += data[index][c] = v[c];
 			}
 
-			if (++index >= full.size() )
+			if (++index >= data.size() )
 				index = 0;
 
 			return *this;
@@ -165,9 +165,9 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		C1 result(void) const noexcept {
-			const auto a = full / data.size();
+			const auto r = full / data.size();
 
-			return C1(a);
+			return C1(r);
 		}
 
 		/** Returns the size of the MAF's internal array. **/
@@ -248,7 +248,7 @@ public:
 
 		/** Instantaeous void current per phase. **/
 		power_vector iv;
-};
+	};
 
 	struct Result feed(const power_vector & u, const power_vector & i) {
 		struct Result r;
