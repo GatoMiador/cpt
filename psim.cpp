@@ -157,10 +157,16 @@ int main(int argc, char **argv) {
 	file << "Va" << "\t" << "Vb" << "\t" << "Vc" << "\t";
 	file << "Ia" << "\t" << "Ib" << "\t" << "Ic" << "\t";
 	file << "pa" << "\t" << "pb" << "\t" << "pc" << "\t";
-	file << "Pa" << "\t" << "Pb" << "\t" << "Pc";
+	file << "Pa" << "\t" << "Pb" << "\t" << "Pc" << "\t";
+	file << "wa" << "\t" << "wb" << "\t" << "wc" << "\t";
+	file << "Wa" << "\t" << "Wb" << "\t" << "Wc" << "\t";
+	file << "Ua" << "\t" << "Ub" << "\t" << "Uc" << "\t";
+	file << "iaa" << "\t" << "iab" << "\t" << "iac" << "\t";
+	file << "ira" << "\t" << "irb" << "\t" << "irc" << "\t";
+	file << "iva" << "\t" << "ivb" << "\t" << "ivc";
 	file << std::endl;
 
-	for (unsigned int o=0; o<2*SAMPLE_RATE/FREQ; o++) {
+	for (unsigned int o=0; o<4*SAMPLE_RATE/FREQ; o++) {
 		u[0] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) );
 		u[1] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
 		u[2] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
@@ -174,7 +180,13 @@ int main(int argc, char **argv) {
 		file << r.u[0] << "\t" << r.u[1] << "\t" << r.u[2] << "\t";
 		file << r.i[0] << "\t" << r.i[1] << "\t" << r.i[2] << "\t";
 		file << r.p[0] << "\t" << r.p[1] << "\t" << r.p[2] << "\t";
-		file << r.P[0] << "\t" << r.P[1] << "\t" << r.P[2];
+		file << r.P[0] << "\t" << r.P[1] << "\t" << r.P[2] << "\t";
+		file << r.w[0] << "\t" << r.w[1] << "\t" << r.w[2] << "\t";
+		file << r.W[0] << "\t" << r.W[1] << "\t" << r.W[2] << "\t";
+		file << r.U[0] << "\t" << r.U[1] << "\t" << r.U[2] << "\t";
+		file << r.ia[0] << "\t" << r.ia[1] << "\t" << r.ia[2] << "\t";
+		file << r.ir[0] << "\t" << r.ir[1] << "\t" << r.ir[2] << "\t";
+		file << r.iv[0] << "\t" << r.iv[1] << "\t" << r.iv[2];
 		file << std::endl;
 	}
 
