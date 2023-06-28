@@ -209,13 +209,35 @@ public:
 		MAF<power_double_vector, power_double_vector> maf;
 	};
 
-	template<typename C> static void validate(C & v) {
+	/** Validates an array and zeros invalid data.
+	 *
+	 * @tparam C Type of array.
+	 * @param v Array to be validatd.
+	**/
+	template<typename C> static void validate(C & v) noexcept {
 		for (auto & o: v) {
 			const auto c = std::fpclassify(o);
 			if ( (c == FP_INFINITE) || (c == FP_NAN) )
 				o = 0;
 		}
 	}
+private:
+
+	/** Stores the unbiased integral of the instantaneous voltage. **/
+	UIntegral ui;
+
+	/** Stores the moving average of the instantaneous active power. **/
+	MAF<> p;
+
+	/** Stores the moving average of the instantaneous active power. **/
+	MAF<> w;
+
+	/** Stores the square of the RMS of the voltage multiplied by the samples. **/
+	MAF<> sq_u;
+
+	/** Stores the square of the RMS of the unbiased integral of the voltage multiplied by the samples. **/
+	MAF<> sq_ui;
+public:
 
 	/** Results of CPT calculation. **/
 	struct Result {
@@ -250,9 +272,10 @@ public:
 		power_vector iv;
 	};
 
-	struct Result feed(const power_vector & u, const power_vector & i) {
+	struct Result feed(const power_vector & u, const power_vector & i) noexcept {
 		struct Result r;
 
+		// Just copy these values
 		r.u = u;
 		r.i = i;
 
@@ -297,21 +320,6 @@ public:
 
 		return r;
 	};
-private:
-	/** Stores the unbiased integral of the instantaneous voltage. **/
-	UIntegral ui;
-
-	/** Stores the moving average of the instantaneous active power. **/
-	MAF<> p;
-
-	/** Stores the moving average of the instantaneous active power. **/
-	MAF<> w;
-
-	/** Stores the square of the RMS of the voltage multiplied by the samples. **/
-	MAF<> sq_u;
-
-	/** Stores the square of the RMS of the unbiased integral of the voltage multiplied by the samples. **/
-	MAF<> sq_ui;
 };
 
 #endif /* CPT_H_ */
