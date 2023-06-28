@@ -209,6 +209,13 @@ public:
 		MAF<power_double_vector, power_double_vector> maf;
 	};
 
+	template<typename C> static void validate(C & v) {
+		for (auto & o: v) {
+			const auto c = std::fpclassify(o);
+			if ( (c == FP_INFINITE) || (c == FP_NAN) )
+				o = 0;
+		}
+	}
 
 	/** Results of CPT calculation. **/
 	struct Result {
@@ -274,10 +281,16 @@ public:
 		// Compute the instantaeous active current per phase
 		r.ia = r.P * u / sq_U;
 
+		// Validate ia because it is possible generation an invalid value
+		validate(r.ia);
+
 		const auto sq_Ui = sq_ui.feed(_ui * _ui).result();
 
 		// Compute the instantaeous reactive current per phase
 		r.ir = r.W * _ui / sq_Ui;
+
+		// Validate ia because it is possible generation an invalid value
+		validate(r.ir);
 
 		// Compute instantaeous void current per phase.
 		r.iv = i - r.ia - r.ir;
