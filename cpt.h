@@ -8,126 +8,132 @@
 #ifndef CPT_H_
 #define CPT_H_
 
-#include <array>
-#include <cmath>
-
-/** Primitive for manipulating arrays. **/
-template<class Z, std::size_t N> struct ArrayPrimitive : public std::array<Z, N> {
-	/** Default contructor.
-	 *
-	 *     These arrays are always zeroed.
-	**/
-	ArrayPrimitive() = default;
-
-	ArrayPrimitive(const Z & d) {
-		for (std::size_t c=0; c<N; c++)
-			(*this)[c] = d;
-	};
-
-	/** Copy contructor. **/
-	ArrayPrimitive(const ArrayPrimitive & v) { *this = v; }
-
-	/** Convert this array to another one. **/
-	template<class X> explicit operator X() const noexcept {
-		X b;
-		for (std::size_t c=0; c<b.size(); c++)
-			b[c] = (*this)[c];
-
-		return b;
-	}
-
-	/** Array type. **/
-	typedef Z value_type;
-
-	typedef value_type * iterator;
-
-	typedef const value_type * const_iterator;
-
-	/** Returns an iterator of the start of array. **/
-	inline constexpr iterator begin() noexcept { return iterator(std::array<Z, N>::begin() ); }
-
-	/** Returns an iterator of the end of array. **/
-	inline constexpr iterator end() noexcept { return iterator(std::array<Z, N>::end() ); }
-
-	/** Returns a constant iterator of the start of the array. **/
-	inline constexpr const_iterator begin() const noexcept { return const_iterator(std::array<Z, N>::begin() ); }
-
-	/** Returns a constant iterator of the end of the array. **/
-	inline constexpr const_iterator end() const noexcept { return const_iterator(std::array<Z, N>::end() ); }
-
-	/** Compute a multiplication between two arrays. **/
-	ArrayPrimitive operator*(const ArrayPrimitive & d) const noexcept {
-		ArrayPrimitive r;
-		for (std::size_t c=0; c<r.size(); c++)
-			r[c] = (*this)[c] * d[c];
-
-		return r;
-	}
-
-	/** Compute a division between two arrays. **/
-	ArrayPrimitive operator/(const ArrayPrimitive & d) const noexcept {
-		ArrayPrimitive r;
-		for (std::size_t c=0; c<r.size(); c++)
-			r[c] = (*this)[c] / d[c];
-
-		return r;
-	}
-
-	/** Compute a division between an array and a numeric value. **/
-	ArrayPrimitive operator/(const Z d) const noexcept {
-		ArrayPrimitive r;
-		for (std::size_t c=0; c<r.size(); c++)
-			r[c] = (*this)[c] / d;
-
-		return r;
-	}
-
-	/** Compute a subtraction between two arrays. **/
-	ArrayPrimitive operator-(const ArrayPrimitive & d) const noexcept {
-		ArrayPrimitive r;
-		for (std::size_t c=0; c<r.size(); c++)
-			r[c] = (*this)[c] - d[c];
-
-	  return r;
-	}
-
-	/** Compute an addition between two arrays. **/
-	ArrayPrimitive operator+(const ArrayPrimitive & d) const noexcept {
-		ArrayPrimitive r;
-		for (std::size_t c=0; c<r.size(); c++)
-			r[c] = (*this)[c] + d[c];
-
-	  return r;
-	}
-
-	/** Compute an addition between this array and another one. **/
-	ArrayPrimitive& operator+=(const ArrayPrimitive& d) noexcept {
-		for (std::size_t c=0; c<this->size(); c++)
-			(*this)[c] += d[c];
-
-		return *this;
-	}
-
-	/** Compute an subtraction between this array and another one. **/
-	ArrayPrimitive& operator-=(const ArrayPrimitive& d) noexcept {
-		for (std::size_t c=0; c<this->size(); c++)
-			(*this)[c] -= d[c];
-
-		return *this;
-	}
-};
-
 template<unsigned int PHASES, unsigned int SAMPLE_RATE, unsigned int FREQ> class CPT {
 public:
+	/** Class for manipulating arrays. **/
+	template<typename Z, size_t N> struct Array {
+		typedef Z value_type;
+
+		typedef value_type * iterator;
+
+		typedef const value_type * const_iterator;
+
+		typedef size_t size_type;
+
+		Array() = default;
+
+		Array(const Z & d) {
+			for (size_type c=0; c<N; c++)
+				(*this)[c] = d;
+		};
+
+		/** Copy contructor. **/
+		Array(const Array & v) { *this = v; }
+
+		/** Convert this array to another one. **/
+		template<typename X> explicit operator X() const noexcept {
+			X b;
+			for (size_type c=0; c<b.size(); c++)
+				b[c] = (*this)[c];
+
+			return b;
+		}
+
+		/** This is the [] operator. **/
+		constexpr Z& operator[](size_type n) noexcept { return data[n]; }
+
+		/** This is the const [] operator. **/
+		constexpr const Z& operator[](size_type n) const noexcept { return data[n]; }
+
+		/** Returns an iterator of the start of array. **/
+		inline constexpr iterator begin() noexcept { return iterator(&data[0]); }
+
+		/** Returns an iterator of the end of array. **/
+		inline constexpr iterator end() noexcept { return iterator(&data[N]); }
+
+		/** Returns a constant iterator of the start of the array. **/
+		inline constexpr const_iterator begin() const noexcept { return const_iterator(&data[0]); }
+
+		/** Returns a constant iterator of the end of the array. **/
+		inline constexpr const_iterator end() const noexcept { return const_iterator(&data[N]); }
+
+		constexpr size_type size() const noexcept { return N; }
+
+		/** Compute a multiplication between two arrays. **/
+		Array operator*(const Array & d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] * d[c];
+
+			return r;
+		}
+
+		/** Compute a division between two arrays. **/
+		Array operator/(const Array & d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] / d[c];
+
+			return r;
+		}
+
+		/** Compute a division between an array and a numeric value. **/
+		Array operator/(const Z d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] / d;
+
+			return r;
+		}
+
+		/** Compute a subtraction between two arrays. **/
+		Array operator-(const Array & d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] - d[c];
+
+		  return r;
+		}
+
+		/** Compute an addition between two arrays. **/
+		Array operator+(const Array & d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] + d[c];
+
+		  return r;
+		}
+
+		/** Compute an addition between this array and another one. **/
+		Array& operator+=(const Array& d) noexcept {
+			for (size_type c=0; c<this->size(); c++)
+				(*this)[c] += d[c];
+
+			return *this;
+		}
+
+		/** Compute an subtraction between this array and another one. **/
+		Array& operator-=(const Array& d) noexcept {
+			for (size_type c=0; c<this->size(); c++)
+				(*this)[c] -= d[c];
+
+			return *this;
+		}
+
+	private:
+		/** Stores the actual array data. **/
+		Z data[N];
+	};
+
 	/** Type for storing final values.
 	 *
 	 *     This array can be float or double depending on the tradeoff between
 	 * performance and accuracy.
 	**/
-	typedef ArrayPrimitive<double, PHASES> power_vector;
+	typedef Array<double, PHASES> power_vector;
 
 	/** Type for storing values being computed. **/
-	typedef ArrayPrimitive<double, PHASES> power_double_vector;
+	typedef Array<double, PHASES> power_double_vector;
 
 	/** Computes the square root of an array.
 	 *
@@ -135,16 +141,16 @@ public:
 	 * @param v Array
 	 * @return Result
 	**/
-	template<typename T> static ArrayPrimitive<T, PHASES> sqrtm(const ArrayPrimitive<T, PHASES> & v) noexcept {
-		ArrayPrimitive<T, PHASES> r;
-		for (std::size_t c=0; c<r.size(); c++)
+	template<typename T> static Array<T, PHASES> sqrtm(const Array<T, PHASES> & v) noexcept {
+		Array<T, PHASES> r;
+		for (size_t c=0; c<r.size(); c++)
 			r[c] = sqrt(v[c]);
 
 		return r;
 	}
 
-	/** Computes a Moving Average Filter (MAF). **/
-	template<class C1 = power_vector, class C2 = power_double_vector>  class MAF {
+	/** Computes the Moving Average Filter (MAF). **/
+	template<typename C1 = power_vector, typename C2 = power_double_vector>  class MAF {
 	public:
 		/** Inputs data and calculate the new MAF value
 		 *
@@ -152,12 +158,12 @@ public:
 		 * @return This class for chaining purposes
 		**/
 		MAF & feed(const C1 & v) noexcept {
-			for (std::size_t c=0; c<full.size(); c++) {
+			for (size_t c=0; c<full.size(); c++) {
 				full[c] -= data[index][c];
 				full[c] += data[index][c] = v[c];
 			}
 
-			if (++index >= data.size() )
+			if (++index >= (SAMPLE_RATE/FREQ) )
 				index = 0;
 
 			return *this;
@@ -165,20 +171,14 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		C1 result(void) const noexcept {
-			const auto r = full / data.size();
+			const auto r = full / (SAMPLE_RATE/FREQ);
 
 			return C1(r);
 		}
-
-		/** Returns the size of the MAF's internal array. **/
-		constexpr std::size_t size() const noexcept {
-			return data.size();
-		};
-
 	private:
 		C2 full { 0 };
-		std::array<C1, (SAMPLE_RATE/ FREQ)> data { 0 };
-		std::size_t index = 0;
+		C1 data[SAMPLE_RATE/ FREQ] { 0 };
+		size_t index = 0;
 	};
 
 	/** Computes the unbiased integral. **/
@@ -216,7 +216,7 @@ public:
 	**/
 	template<typename C> static void validate(C & v) noexcept {
 		for (auto & o: v) {
-			const auto c = std::fpclassify(o);
+			const auto c = fpclassify(o);
 			if ( (c == FP_INFINITE) || (c == FP_NAN) )
 				o = 0;
 		}
