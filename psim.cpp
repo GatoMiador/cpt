@@ -94,6 +94,40 @@ ADDAPI void ADDCALL SimulationStep(
 	out[27] = r.iv[0];
 	out[28] = r.iv[1];
 	out[29] = r.iv[2];
+
+	out[30] = r.iba[0];
+	out[31] = r.iba[1];
+	out[32] = r.iba[2];
+
+	out[33] = r.ibr[0];
+	out[34] = r.ibr[1];
+	out[35] = r.ibr[2];
+
+	out[36] = r.iua[0];
+	out[37] = r.iua[1];
+	out[38] = r.iua[2];
+
+	out[39] = r.iur[0];
+	out[40] = r.iur[1];
+	out[41] = r.iur[2];
+
+	out[42] = r.t.P;
+
+	out[43] = r.t.Q;
+
+	out[44] = r.t.N;
+
+	out[45] = r.t.V;
+
+	out[46] = r.t.A;
+
+	out[47] = r.t.rf;
+
+	out[48] = r.t.uf;
+
+	out[49] = r.t.df;
+
+	out[50] = r.t.pf;
 }
 
 
