@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "cpt.h"
 
@@ -166,14 +165,16 @@ int main(int argc, char **argv) {
 	file << "iva" << "\t" << "ivb" << "\t" << "ivc";
 	file << std::endl;
 
-	for (unsigned int o=0; o<4*SAMPLE_RATE/FREQ; o++) {
-		u[0] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) );
-		u[1] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
-		u[2] = 127 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
+	const auto angle = -M_PI/2;
 
-		i[0] =   1 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) );
-		i[1] =   1 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
-		i[2] =   1 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
+	for (unsigned int o=0; o<4*SAMPLE_RATE/FREQ; o++) {
+		u[0] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) );
+		u[1] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
+		u[2] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
+
+		i[0] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + angle);
+		i[1] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3 + angle);
+		i[2] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3 + angle);
 
 		const auto r = cpt.feed(u, i);
 

@@ -8,6 +8,8 @@
 #ifndef CPT_H_
 #define CPT_H_
 
+#include <math.h>
+
 /** Calculates de CPT parcels.
  *
  * @tparam PHASES Number of phases
@@ -65,7 +67,7 @@ public:
 
 		constexpr size_type size() const noexcept { return N; }
 
-		/** Compute a multiplication between two arrays. **/
+		/** Computes a multiplication between two arrays. **/
 		Array operator*(const Array & d) const noexcept {
 			Array r;
 			for (size_type c=0; c<r.size(); c++)
@@ -74,7 +76,16 @@ public:
 			return r;
 		}
 
-		/** Compute a division between two arrays. **/
+		/** Computes a multiplication between an array and a numeric value. **/
+		Array operator*(const Z d) const noexcept {
+			Array r;
+			for (size_type c=0; c<r.size(); c++)
+				r[c] = (*this)[c] * d;
+
+			return r;
+		}
+
+		/** Computes a division between two arrays. **/
 		Array operator/(const Array & d) const noexcept {
 			Array r;
 			for (size_type c=0; c<r.size(); c++)
@@ -83,7 +94,7 @@ public:
 			return r;
 		}
 
-		/** Compute a division between an array and a numeric value. **/
+		/** Computes a division between an array and a numeric value. **/
 		Array operator/(const Z d) const noexcept {
 			Array r;
 			for (size_type c=0; c<r.size(); c++)
@@ -92,7 +103,7 @@ public:
 			return r;
 		}
 
-		/** Compute a subtraction between two arrays. **/
+		/** Computes a subtraction between two arrays. **/
 		Array operator-(const Array & d) const noexcept {
 			Array r;
 			for (size_type c=0; c<r.size(); c++)
@@ -101,7 +112,7 @@ public:
 		  return r;
 		}
 
-		/** Compute an addition between two arrays. **/
+		/** Computes an addition between two arrays. **/
 		Array operator+(const Array & d) const noexcept {
 			Array r;
 			for (size_type c=0; c<r.size(); c++)
@@ -110,7 +121,7 @@ public:
 		  return r;
 		}
 
-		/** Compute an addition between this array and another one. **/
+		/** Computes an addition between this array and another one. **/
 		Array& operator+=(const Array& d) noexcept {
 			for (size_type c=0; c<this->size(); c++)
 				(*this)[c] += d[c];
@@ -118,7 +129,7 @@ public:
 			return *this;
 		}
 
-		/** Compute an subtraction between this array and another one. **/
+		/** Computes an subtraction between this array and another one. **/
 		Array& operator-=(const Array& d) noexcept {
 			for (size_type c=0; c<this->size(); c++)
 				(*this)[c] -= d[c];
@@ -126,20 +137,55 @@ public:
 			return *this;
 		}
 
+		/** Computes the summation of the values in this array.
+		 *
+		 * @tparam T Type of the resulting number.
+		 * @return Result.
+		**/
+		template<typename T = Z> T sum(void) const noexcept {
+			T res = 0;
+			for (const auto & a: data)
+				res += a;
+			return res;
+		}
+
+		/** Computes the summation of the square of the values in this array.
+		 *
+		 * @tparam T Type of the resulting number.
+		 * @return Result.
+		**/
+		template<typename T = Z> T sq_sum(void) const noexcept {
+			T res = 0;
+			for (const auto & a: data)
+				res += a * a;
+			return res;
+		}
 	private:
 		/** Stores the actual array data. **/
 		Z data[N];
 	};
 
-	/** Type for storing final values.
+	/** Type for output numbers.
 	 *
-	 *     This array can be float or double depending on the tradeoff between
+	 *     This number can be float or double depending on the tradeoff between
 	 * performance and accuracy.
+	 * 	   A good choice may be int or long long for data acquired from ADC
+	 * since float types do not behave well when they are added.
 	**/
-	typedef Array<double, PHASES> power_vector;
+	typedef double output_number;
+
+	/** Type for input numbers.
+	 *
+	 * 	   A good choice may be short int or int for data acquired from ADC
+	 * since float types do not behave well when they are added.
+	**/
+	typedef double input_number;
+
+	/** Type for storing final values. **/
+	typedef Array<output_number, PHASES> power_vector;
 
 	/** Type for storing values being computed. **/
-	typedef Array<double, PHASES> power_double_vector;
+	typedef Array<input_number, PHASES> power_double_vector;
 
 	/** Computes the square root of an array.
 	 *
@@ -169,7 +215,7 @@ public:
 				full[c] += data[index][c] = v[c];
 			}
 
-			if (++index >= (SAMPLING_RATE/FREQ) )
+			if (++index >= (sizeof(data)/sizeof(data[0]) ) )
 				index = 0;
 
 			return *this;
@@ -177,13 +223,13 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		C1 result(void) const noexcept {
-			const auto r = full / (SAMPLING_RATE/FREQ);
+			const auto r = full / (sizeof(data)/sizeof(data[0]) );
 
 			return C1(r);
 		}
 	private:
 		C2 full { 0 };
-		C1 data[SAMPLING_RATE/ FREQ] { 0 };
+		C1 data[SAMPLING_RATE/FREQ] { 0 };
 		size_t index = 0;
 	};
 
@@ -198,15 +244,15 @@ public:
 		UIntegral & feed(const power_vector & v) noexcept {
 			const auto r = power_double_vector(v);
 
-			val += r / SAMPLING_RATE;
-			maf.feed(r);
+			val += r;
+			maf.feed(val);
 
 			return *this;
 		}
 
 		/** Returns the last result of the MAF filter. **/
 		power_vector result(void) const noexcept {
-			const auto r = val - maf.result();
+			const auto r = (val - maf.result() ) * 2 * M_PI / (SAMPLING_RATE/FREQ);
 
 			return power_vector(r);
 		}
@@ -215,21 +261,29 @@ public:
 		MAF<power_double_vector, power_double_vector> maf;
 	};
 
+	/** Validates a number and zeros invalid data.
+	 *
+	 * @tparam C Type of the number.
+	 * @param v Number to be validatd.
+	**/
+	template<typename C> static void validate(C & o) noexcept {
+		const auto c = fpclassify(o);
+		if ( (c == FP_INFINITE) || (c == FP_NAN) )
+			o = 0;
+	}
+
 	/** Validates an array and zeros invalid data.
 	 *
 	 * @tparam C Type of array.
 	 * @param v Array to be validatd.
 	**/
-	template<typename C> static void validate(C & v) noexcept {
-		for (auto & o: v) {
-			const auto c = fpclassify(o);
-			if ( (c == FP_INFINITE) || (c == FP_NAN) )
-				o = 0;
-		}
+	template<typename C> static void validate(Array<C, PHASES> & v) noexcept {
+		for (auto & o: v)
+			validate(o);
 	}
 private:
 
-	/** Stores the unbiased integral of the instantaneous voltage. **/
+	/** Stores the unbiased integral (û) of the instantaneous voltage. **/
 	UIntegral ui;
 
 	/** Stores the moving average of the instantaneous active power. **/
@@ -238,10 +292,10 @@ private:
 	/** Stores the moving average of the instantaneous active power. **/
 	MAF<> w;
 
-	/** Stores the square of the RMS of the voltage multiplied by the samples. **/
+	/** Stores the square of the RMS ||U|| of the voltage multiplied by the samples. **/
 	MAF<> sq_u;
 
-	/** Stores the square of the RMS of the unbiased integral of the voltage multiplied by the samples. **/
+	/** Stores the square of the RMS ||Û||  of the unbiased integral of the voltage multiplied by the samples. **/
 	MAF<> sq_ui;
 public:
 
@@ -276,6 +330,47 @@ public:
 
 		/** Instantaeous void current per phase. **/
 		power_vector iv;
+
+		/** Instantaeous balanced active current per phase. **/
+		power_vector iba;
+
+		/** Instantaeous balanced reactive current per phase. **/
+		power_vector ibr;
+
+		/** Instantaeous unbalanced active current per phase. **/
+		power_vector iua;
+
+		/** Instantaeous unbalanced reactive current per phase. **/
+		power_vector iur;
+
+		struct Totals {
+			/** Overall active power. **/
+			output_number P;
+
+			/** Overall reactive power. **/
+			output_number Q;
+
+			/** Overall unbalance power. **/
+			output_number N;
+
+			/** Overall void power. **/
+			output_number V;
+
+			/** Overall apparent power. **/
+			output_number A;
+
+			/** Reactivity factor. **/
+			output_number rf;
+
+			/** Unbalance factor. **/
+			output_number uf;
+
+			/** Non linearity factor. **/
+			output_number df;
+
+			/** Power factor. **/
+			output_number pf;
+		} t;
 	};
 
 	struct Result feed(const power_vector & u, const power_vector & i) noexcept {
@@ -323,6 +418,64 @@ public:
 
 		// Compute instantaeous void current per phase.
 		r.iv = i - r.ia - r.ir;
+
+		const auto sq_UT = sq_U.sum();
+
+		// Compute instantaeous balanced active current per phase
+		r.iba = u * r.P.sum() / sq_UT;
+
+		validate(r.iba);
+
+		// Compute instantaeous balanced reactive current per phase
+		r.ibr = _ui * r.W.sum() / sq_Ui.sum();
+
+		validate(r.ibr);
+
+		// Compute instantaeous unbalanced active current per phase.
+		r.iua = r.ia - r.iba;
+
+		// Compute instantaeous unbalanced reactive current per phase.
+		r.iur = r.ir - r.ibr;
+
+		const auto UT = sqrt(sq_UT);
+
+		// Compute overall active power.
+		r.t.P = UT * sqrt(r.iba.sq_sum() );
+
+		// Compute overall reactive power.
+		r.t.Q = UT * sqrt(r.ibr.sq_sum() );
+
+		const auto Na = UT * sqrt(r.iua.sq_sum() );
+		const auto Nr = UT * sqrt(r.iur.sq_sum() );
+
+		// Compute overall unbalance power.
+		r.t.N = sqrt(Na*Na + Nr*Nr);
+
+		// Compute overall void power.
+		r.t.V = UT * sqrt(r.iv.sq_sum() );
+
+		// Compute overall apparent power.
+		r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
+
+		// Compute reactivity factor.
+		r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
+
+		validate(r.t.rf);
+
+		// Compute unbalance factor.
+		r.t.uf = UT / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + sq_UT);
+
+		validate(r.t.uf);
+
+		// Compute non linearity factor.
+		r.t.df = r.t.V / r.t.A;
+
+		validate(r.t.df);
+
+		// Compute power factor.
+		r.t.pf = r.t.P / r.t.A;
+
+		validate(r.t.pf);
 
 		return r;
 	};
