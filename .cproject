@@ -42,8 +42,13 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.63890981.923320386" name="psim_mono.cpp" rcbsApplicability="disable" resourcePath="psim_mono.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1735196840.195820280">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1735196840.195820280" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1735196840">
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1300509974" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="Makefile|mingw" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="psim_mono.cpp|Makefile|mingw" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

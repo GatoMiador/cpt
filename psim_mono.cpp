@@ -23,7 +23,7 @@ extern "C"
 
 // PLACE GLOBAL VARIABLES OR USER FUNCTIONS HERE...
 
-static CPT<3, SAMPLE_RATE, FREQ> cpt;
+static CPT<1, SAMPLE_RATE, FREQ> cpt;
 
 /////////////////////////////////////////////////////////////////////
 // FUNCTION: SimulationStep
@@ -44,90 +44,56 @@ ADDAPI void ADDCALL SimulationStep(
 	decltype(cpt)::power_vector u;
 
 	u[0] = in[0];
-	u[1] = in[1];
-	u[2] = in[2];
 
 	decltype(cpt)::power_vector i;
 
-	i[0] = in[3];
-	i[1] = in[4];
-	i[2] = in[5];
+	i[0] = in[1];
 
 	const auto r = cpt.feed(u, i);
 
 	out[0] = r.u[0];
-	out[1] = r.u[1];
-	out[2] = r.u[2];
 
-	out[3] = r.i[0];
-	out[4] = r.i[1];
-	out[5] = r.i[2];
+	out[1] = r.i[0];
 
-	out[6] = r.p[0];
-	out[7] = r.p[1];
-	out[8] = r.p[2];
+	out[2] = r.p[0];
 
-	out[9] = r.P[0];
-	out[10] = r.P[1];
-	out[11] = r.P[2];
+	out[3] = r.P[0];
 
-	out[12] = r.w[0];
-	out[13] = r.w[1];
-	out[14] = r.w[2];
+	out[4] = r.w[0];
 
-	out[15] = r.W[0];
-	out[16] = r.W[1];
-	out[17] = r.W[2];
+	out[5] = r.W[0];
 
-	out[18] = r.U[0];
-	out[19] = r.U[1];
-	out[20] = r.U[2];
+	out[6] = r.U[0];
 
-	out[21] = r.ia[0];
-	out[22] = r.ia[1];
-	out[23] = r.ia[2];
+	out[7] = r.ia[0];
 
-	out[24] = r.ir[0];
-	out[25] = r.ir[1];
-	out[26] = r.ir[2];
+	out[8] = r.ir[0];
 
-	out[27] = r.iv[0];
-	out[28] = r.iv[1];
-	out[29] = r.iv[2];
+	out[9] = r.iv[0];
 
-	out[30] = r.iba[0];
-	out[31] = r.iba[1];
-	out[32] = r.iba[2];
+	out[10] = r.iba[0];
 
-	out[33] = r.ibr[0];
-	out[34] = r.ibr[1];
-	out[35] = r.ibr[2];
+	out[11] = r.ibr[0];
 
-	out[36] = r.iua[0];
-	out[37] = r.iua[1];
-	out[38] = r.iua[2];
+	out[12] = r.iua[0];
 
-	out[39] = r.iur[0];
-	out[40] = r.iur[1];
-	out[41] = r.iur[2];
+	out[13] = r.iur[0];
 
-	out[42] = r.t.P;
+	out[14] = r.t.P;
 
-	out[43] = r.t.Q;
+	out[15] = r.t.Q;
 
-	out[44] = r.t.N;
+	out[16] = r.t.V;
 
-	out[45] = r.t.V;
+	out[17] = r.t.A;
 
-	out[46] = r.t.A;
+	out[18] = r.t.rf;
 
-	out[47] = r.t.rf;
+	out[19] = r.t.uf;
 
-	out[48] = r.t.uf;
+	out[20] = r.t.df;
 
-	out[49] = r.t.df;
-
-	out[50] = r.t.pf;
+	out[21] = r.t.pf;
 }
 
 
@@ -180,7 +146,7 @@ ADDAPI void ADDCALL SimulationEnd(const char *szId, void ** reserved_UserData, i
 
 /** Test routine so this file can be used outside PSIM. **/
 int main(int argc, char **argv) {
-	static CPT<3, SAMPLE_RATE, FREQ> cpt;
+	static CPT<1, SAMPLE_RATE, FREQ> cpt;
 
 	decltype(cpt)::power_vector u;
 	decltype(cpt)::power_vector i;
@@ -203,12 +169,12 @@ int main(int argc, char **argv) {
 
 	for (unsigned int o=0; o<8*SAMPLE_RATE/FREQ; o++) {
 		u[0] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) );
-		u[1] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
-		u[2] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
+		u[1] =   0 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3);
+		u[2] =   0 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3);
 
 		i[0] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + angle);
-		i[1] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3 + angle);
-		i[2] =   1 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3 + angle);
+		i[1] =   0 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) - 2*M_PI/3 + angle);
+		i[2] =   0 * M_SQRT2 * sin(2 * M_PI * o / (SAMPLE_RATE/FREQ) + 2*M_PI/3 + angle);
 
 		const auto r = cpt.feed(u, i);
 
