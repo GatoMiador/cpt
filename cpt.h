@@ -474,7 +474,7 @@ public:
 			validate(r.t.rf);
 
 			// Compute unbalance factor.
-			r.t.uf = UT / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + sq_UT);
+			r.t.uf = r.t.N / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N);
 
 			validate(r.t.uf);
 
