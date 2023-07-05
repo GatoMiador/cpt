@@ -457,11 +457,8 @@ public:
 			// Compute overall reactive power.
 			r.t.Q = UT * sqrt(r.ibr.sq_sum() );
 
-			const auto Na = UT * sqrt(r.iua.sq_sum() );
-			const auto Nr = UT * sqrt(r.iur.sq_sum() );
-
 			// Compute overall unbalance power.
-			r.t.N = sqrt(Na*Na + Nr*Nr);
+			r.t.N = UT * sqrt( (r.iua + r.iur).sq_sum() );
 
 			// Compute overall void power.
 			r.t.V = UT * sqrt(r.iv.sq_sum() );
