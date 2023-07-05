@@ -242,9 +242,10 @@ public:
 		 * @return This class for chaining purposes
 		**/
 		UIntegral & feed(const power_vector & v) noexcept {
-			const auto r = power_double_vector(v);
+			const auto r = decltype(val)(v);
 
-			val += r;
+			val += r + old_sample;
+			old_sample = r;
 			maf.feed(val);
 
 			return *this;
@@ -252,11 +253,12 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		power_vector result(void) const noexcept {
-			const auto r = (val - maf.result() ) * 2 * M_PI / (SAMPLING_RATE/FREQ);
+			const auto r = (val - maf.result() ) * 2 * M_PI * FREQ / (2 * SAMPLING_RATE);
 
 			return power_vector(r);
 		}
 	private:
+		power_double_vector old_sample { 0 };
 		power_double_vector val { 0 };
 		MAF<power_double_vector, power_double_vector> maf;
 	};
@@ -397,9 +399,8 @@ public:
 		r.P = p.feed(r.p).result();
 
 		// Compute the unbiased integral of the voltage
-		ui.feed(u);
+		const auto _ui = ui.feed(u).result();
 
-		const auto _ui = ui.result();
 
 		// Compute the instantaeous reactive energy per phase
 		r.w = _ui * i;
