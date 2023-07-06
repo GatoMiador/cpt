@@ -148,18 +148,6 @@ public:
 				res += a;
 			return res;
 		}
-
-		/** Computes the summation of the square of the values in this array.
-		 *
-		 * @tparam T Type of the resulting number.
-		 * @return Result.
-		**/
-		template<typename T = Z> T sq_sum(void) const noexcept {
-			T res = 0;
-			for (const auto & a: data)
-				res += a * a;
-			return res;
-		}
 	private:
 		/** Stores the actual array data. **/
 		Z data[N];
@@ -309,79 +297,88 @@ private:
 	/** Stores the square of the RMS of the void current. **/
 	MAF<> sq_iv;
 
+	MAF<> sq_iba;
+
+	MAF<> sq_ibr;
+
+	/** Stores the square of the RMS of the unbalanced active current. **/
+	MAF<> sq_iua;
+
+	/** Stores the square of the RMS of the unbalanced reactive current. **/
+	MAF<> sq_iur;
 public:
 
 	/** Results of CPT calculation. **/
 	struct Result {
 		/** Instantaeous active power per phase. **/
-		power_vector p;
+		power_vector p {0};
 
 		/** Average active power per phase. **/
-		power_vector P;
+		power_vector P {0};
 
 		/** Instantaeous reactive energy per phase. **/
-		power_vector w;
+		power_vector w {0};
 
 		/** Average reactive energy per phase. **/
-		power_vector W;
+		power_vector W {0};
 
 		/** Instantaeous voltage per phase. **/
-		power_vector u;
+		power_vector u {0};
 
 		/** RMS of the voltage. **/
-		power_vector U;
+		power_vector U {0};
 
 		/** Instantaeous current per phase. **/
-		power_vector i;
+		power_vector i {0};
 
 		/** Instantaeous active current per phase. **/
-		power_vector ia;
+		power_vector ia {0};
 
 		/** Instantaeous reactive current per phase. **/
-		power_vector ir;
+		power_vector ir {0};
 
 		/** Instantaeous void current per phase. **/
-		power_vector iv;
+		power_vector iv  {0};
 
 		/** Instantaeous balanced active current per phase. **/
-		power_vector iba;
+		power_vector iba {0};
 
 		/** Instantaeous balanced reactive current per phase. **/
-		power_vector ibr;
+		power_vector ibr {0};
 
 		/** Instantaeous unbalanced active current per phase. **/
-		power_vector iua;
+		power_vector iua {0};
 
 		/** Instantaeous unbalanced reactive current per phase. **/
-		power_vector iur;
+		power_vector iur {0};
 
 		struct Totals {
 			/** Overall active power. **/
-			output_number P;
+			output_number P {0};
 
 			/** Overall reactive power. **/
-			output_number Q;
+			output_number Q {0};
 
 			/** Overall unbalance power. **/
-			output_number N;
+			output_number N {0};
 
 			/** Overall void power. **/
-			output_number V;
+			output_number V {0};
 
 			/** Overall apparent power. **/
-			output_number A;
+			output_number A {0};
 
 			/** Reactivity factor. **/
-			output_number rf;
+			output_number rf {0};
 
 			/** Unbalance factor. **/
-			output_number uf;
+			output_number uf {0};
 
 			/** Non linearity factor. **/
-			output_number df;
+			output_number df {0};
 
 			/** Power factor. **/
-			output_number pf;
+			output_number pf {0};
 		} t;
 	};
 
@@ -398,7 +395,7 @@ public:
 		// Compute the average active power per phase
 		r.P = p.feed(r.p).result();
 
-		// Compute the unbiased integral of the voltage
+		//! Compute the unbiased integral of the voltage
 		const auto _ui = ui.feed(u).result();
 
 		// Compute the instantaeous reactive energy per phase
@@ -407,6 +404,7 @@ public:
 		// Compute the average active power per phase
 		r.W = w.feed(r.w).result();
 
+		//! Compute mean square of voltage
 		const auto sq_U = sq_u.feed(u * u).result();
 
 		// Compute the RMS voltage
@@ -418,6 +416,7 @@ public:
 		// Validate ia because it is possible generation an invalid value
 		validate(r.ia);
 
+		//! Compute the mean square of the unbiased integral of the voltage
 		const auto sq_Ui = sq_ui.feed(_ui * _ui).result();
 
 		// Compute the instantaeous reactive current per phase
@@ -429,7 +428,17 @@ public:
 		// Compute instantaeous void current per phase.
 		r.iv = i - r.ia - r.ir;
 
+		//! Compute the total mean square of voltage
 		const auto sq_UT = sq_U.sum();
+
+		//! Compute the total root mean square of voltage
+		const auto UT = sqrt(sq_UT);
+
+		//! Compute the mean square of the void current
+		const auto sq_iV = sq_iv.feed(r.iv * r.iv).result();
+
+		// Compute overall void power.
+		r.t.V = UT * sqrt(sq_iV.sum() );
 
 		// Compute instantaeous balanced active current per phase
 		r.iba = u * r.P.sum() / sq_UT;
@@ -447,20 +456,18 @@ public:
 		// Compute instantaeous unbalanced reactive current per phase.
 		r.iur = r.ir - r.ibr;
 
-		const auto UT = sqrt(sq_UT);
-
 		if (PHASES > 1) {
 			// Compute overall active power.
-			r.t.P = UT * sqrt(r.iba.sq_sum() );
+			r.t.P = UT * sqrt(sq_iba.feed(r.iba * r.iba).result().sum() );
 
 			// Compute overall reactive power.
-			r.t.Q = UT * sqrt(r.ibr.sq_sum() );
+			r.t.Q = UT * sqrt(sq_ibr.feed(r.ibr * r.ibr).result().sum() );
 
-			// Compute overall void power.
-			r.t.V = UT * sqrt(r.iv.sq_sum() );
+			const auto sq_iUa = sq_iua.feed(r.iua * r.iua).result();
+			const auto sq_iUr = sq_iur.feed(r.iur * r.iur).result();
 
 			// Compute overall unbalance power.
-			r.t.N = UT * sqrt( (r.iua + r.iur).sq_sum() );
+			r.t.N = UT * sqrt( (sq_iUa + sq_iUr).sum() );
 
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
@@ -475,9 +482,6 @@ public:
 
 			// Compute overall reactive power.
 			r.t.Q = UT * sqrt(sq_ir.feed(r.ir * r.ir).result().sum() );
-
-			// Compute overall void power.
-			r.t.V = UT * sqrt(sq_iv.feed(r.iv * r.iv).result().sum() );
 
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.V*r.t.V);
