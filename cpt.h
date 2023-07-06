@@ -401,7 +401,6 @@ public:
 		// Compute the unbiased integral of the voltage
 		const auto _ui = ui.feed(u).result();
 
-
 		// Compute the instantaeous reactive energy per phase
 		r.w = _ui * i;
 
