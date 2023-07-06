@@ -457,34 +457,19 @@ public:
 			// Compute overall reactive power.
 			r.t.Q = UT * sqrt(r.ibr.sq_sum() );
 
-			// Compute overall unbalance power.
-			r.t.N = UT * sqrt( (r.iua + r.iur).sq_sum() );
-
 			// Compute overall void power.
 			r.t.V = UT * sqrt(r.iv.sq_sum() );
 
+			// Compute overall unbalance power.
+			r.t.N = UT * sqrt( (r.iua + r.iur).sq_sum() );
+
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
-
-			// Compute reactivity factor.
-			r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
-
-			validate(r.t.rf);
 
 			// Compute unbalance factor.
 			r.t.uf = r.t.N / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N);
 
 			validate(r.t.uf);
-
-			// Compute non linearity factor.
-			r.t.df = r.t.V / r.t.A;
-
-			validate(r.t.df);
-
-			// Compute power factor.
-			r.t.pf = r.t.P / r.t.A;
-
-			validate(r.t.pf);
 		} else {
 			// Compute overall active power.
 			r.t.P = UT * sqrt(sq_ia.feed(r.ia * r.ia).result().sum() );
@@ -497,22 +482,22 @@ public:
 
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.V*r.t.V);
-
-			// Compute reactivity factor.
-			r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
-
-			validate(r.t.rf);
-
-			// Compute non linearity factor.
-			r.t.df = r.t.V / r.t.A;
-
-			validate(r.t.df);
-
-			// Compute power factor.
-			r.t.pf = r.t.P / r.t.A;
-
-			validate(r.t.pf);
 		}
+
+		// Compute reactivity factor.
+		r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
+
+		validate(r.t.rf);
+
+		// Compute non linearity factor.
+		r.t.df = r.t.V / r.t.A;
+
+		validate(r.t.df);
+
+		// Compute power factor.
+		r.t.pf = r.t.P / r.t.A;
+
+		validate(r.t.pf);
 
 		return r;
 	};
