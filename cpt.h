@@ -446,23 +446,26 @@ public:
 
 		validate(r.t.V);
 
-		// Compute instantaeous balanced active current per phase
-		r.iba = u * r.P.sum() / sq_UT;
-
-		validate(r.iba);
-
-		// Compute instantaeous balanced reactive current per phase
-		r.ibr = _ui * r.W.sum() / sq_Ui.sum();
-
-		validate(r.ibr);
-
-		// Compute instantaeous unbalanced active current per phase.
-		r.iua = r.ia - r.iba;
-
-		// Compute instantaeous unbalanced reactive current per phase.
-		r.iur = r.ir - r.ibr;
-
 		if (PHASES > 1) {
+			// Compute instantaeous balanced active current per phase
+			r.iba = u * r.P.sum() / sq_UT;
+
+			validate(r.iba);
+
+			//! Compute the total mean square of the unbiased integral of voltage
+			const auto sq_UiT = sq_Ui.sum();
+
+			// Compute instantaeous balanced reactive current per phase
+			r.ibr = _ui * r.W.sum() / sq_UiT;
+
+			validate(r.ibr);
+
+			// Compute instantaeous unbalanced active current per phase.
+			r.iua = r.ia - r.iba;
+
+			// Compute instantaeous unbalanced reactive current per phase.
+			r.iur = r.ir - r.ibr;
+
 			// Compute overall active power.
 			r.t.P = UT * sqrt(sq_iba.feed(r.iba * r.iba).result().sum() );
 
