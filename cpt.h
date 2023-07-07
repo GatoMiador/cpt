@@ -297,8 +297,10 @@ private:
 	/** Stores the square of the RMS of the void current. **/
 	MAF<> sq_iv;
 
+	/** Stores the square of the RMS of the balanced active current. **/
 	MAF<> sq_iba;
 
+	/** Stores the square of the RMS of the balanced active current. **/
 	MAF<> sq_ibr;
 
 	/** Stores the square of the RMS of the unbalanced active current. **/
@@ -311,74 +313,74 @@ public:
 	/** Results of CPT calculation. **/
 	struct Result {
 		/** Instantaeous active power per phase. **/
-		power_vector p {0};
+		power_vector p;
 
 		/** Average active power per phase. **/
-		power_vector P {0};
+		power_vector P;
 
 		/** Instantaeous reactive energy per phase. **/
-		power_vector w {0};
+		power_vector w;
 
 		/** Average reactive energy per phase. **/
-		power_vector W {0};
+		power_vector W;
 
 		/** Instantaeous voltage per phase. **/
-		power_vector u {0};
+		power_vector u;
 
 		/** RMS of the voltage. **/
-		power_vector U {0};
+		power_vector U;
 
 		/** Instantaeous current per phase. **/
-		power_vector i {0};
+		power_vector i;
 
 		/** Instantaeous active current per phase. **/
-		power_vector ia {0};
+		power_vector ia;
 
 		/** Instantaeous reactive current per phase. **/
-		power_vector ir {0};
+		power_vector ir;
 
 		/** Instantaeous void current per phase. **/
-		power_vector iv  {0};
+		power_vector iv;
 
 		/** Instantaeous balanced active current per phase. **/
-		power_vector iba {0};
+		power_vector iba;
 
 		/** Instantaeous balanced reactive current per phase. **/
-		power_vector ibr {0};
+		power_vector ibr;
 
 		/** Instantaeous unbalanced active current per phase. **/
-		power_vector iua {0};
+		power_vector iua;
 
 		/** Instantaeous unbalanced reactive current per phase. **/
-		power_vector iur {0};
+		power_vector iur;
 
 		struct Totals {
 			/** Overall active power. **/
-			output_number P {0};
+			output_number P;
 
 			/** Overall reactive power. **/
-			output_number Q {0};
+			output_number Q;
 
 			/** Overall unbalance power. **/
-			output_number N {0};
+			output_number N;
 
 			/** Overall void power. **/
-			output_number V {0};
+			output_number V;
 
 			/** Overall apparent power. **/
-			output_number A {0};
+			output_number A;
 
 			/** Reactivity factor. **/
-			output_number rf {0};
+			output_number rf;
 
 			/** Unbalance factor. **/
-			output_number uf {0};
+			output_number uf;
 
 			/** Non linearity factor. **/
-			output_number df {0};
+			output_number df;
 
 			/** Power factor. **/
-			output_number pf {0};
+			output_number pf;
 		} t;
 	};
 
@@ -432,13 +434,17 @@ public:
 		const auto sq_UT = sq_U.sum();
 
 		//! Compute the total root mean square of voltage
-		const auto UT = sqrt(sq_UT);
+		auto UT = sqrt(sq_UT);
+
+		validate(UT);
 
 		//! Compute the mean square of the void current
 		const auto sq_iV = sq_iv.feed(r.iv * r.iv).result();
 
 		// Compute overall void power.
 		r.t.V = UT * sqrt(sq_iV.sum() );
+
+		validate(r.t.V);
 
 		// Compute instantaeous balanced active current per phase
 		r.iba = u * r.P.sum() / sq_UT;
@@ -460,8 +466,12 @@ public:
 			// Compute overall active power.
 			r.t.P = UT * sqrt(sq_iba.feed(r.iba * r.iba).result().sum() );
 
+			validate(r.t.P);
+
 			// Compute overall reactive power.
 			r.t.Q = UT * sqrt(sq_ibr.feed(r.ibr * r.ibr).result().sum() );
+
+			validate(r.t.Q);
 
 			const auto sq_iUa = sq_iua.feed(r.iua * r.iua).result();
 			const auto sq_iUr = sq_iur.feed(r.iur * r.iur).result();
@@ -469,8 +479,12 @@ public:
 			// Compute overall unbalance power.
 			r.t.N = UT * sqrt( (sq_iUa + sq_iUr).sum() );
 
+			validate(r.t.N);
+
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
+
+			validate(r.t.A);
 
 			// Compute unbalance factor.
 			r.t.uf = r.t.N / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N);
@@ -480,11 +494,17 @@ public:
 			// Compute overall active power.
 			r.t.P = UT * sqrt(sq_ia.feed(r.ia * r.ia).result().sum() );
 
+			validate(r.t.P);
+
 			// Compute overall reactive power.
 			r.t.Q = UT * sqrt(sq_ir.feed(r.ir * r.ir).result().sum() );
 
+			validate(r.t.Q);
+
 			// Compute overall apparent power.
 			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.V*r.t.V);
+
+			validate(r.t.A);
 		}
 
 		// Compute reactivity factor.
