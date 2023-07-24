@@ -12,6 +12,8 @@
 
 /** Calculates de CPT parcels.
  *
+ * https://ieeexplore.ieee.org/document/5638628
+ *
  * @tparam PHASES Number of phases
  * @tparam SAMPLING_RATE Sampling rate
  * @tparam FREQ Mains frequency
