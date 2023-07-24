@@ -189,7 +189,12 @@ public:
 		return r;
 	}
 
-	/** Computes the Moving Average Filter (MAF). **/
+	/** Computes the Moving Average Filter (MAF).
+	 *
+	 *  FIXME - This class are known to cause numeric errors when using floating point types,
+	 * alternative strategies are advised for these cases.
+	 * Void power and currents should be zero for some tests and they are not.
+	**/
 	template<typename C1 = power_vector, typename C2 = power_double_vector>  class MAF {
 	public:
 		/** Inputs data and calculate the new MAF value
@@ -428,6 +433,10 @@ public:
 		validate(r.ir);
 
 		// Compute instantaeous void current per phase.
+		/* FIXME - These subtractions are known to cause numeric errors when using floating point types,
+		 * alternative strategies are advised for these cases.
+		 * Void power and currents should be zero for some tests and they are not.
+		*/
 		r.iv = i - r.ia - r.ir;
 
 		//! Compute the total mean square of voltage
