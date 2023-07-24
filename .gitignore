@@ -1,5 +1,4 @@
 /tests/mingw
 /tests/Debug
-/tests/dll.o
-/tests/dll_mono.o
-/*.smv
+*.o
+*.smv

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cpt.h"
+#include "../cpt.h"
 
 #ifdef _WIN32
 #define ADDAPI __declspec(dllexport)
