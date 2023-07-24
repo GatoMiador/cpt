@@ -1,6 +1,5 @@
-/mingw
-/Debug
-/dll.o
-/final.smv
-/dll_mono.o
+/tests/mingw
+/tests/Debug
+/tests/dll.o
+/tests/dll_mono.o
 /*.smv
