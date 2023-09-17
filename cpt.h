@@ -10,7 +10,7 @@
 
 #include <math.h>
 
-/** Calculates de CPT parcels.
+/** Calculates de CPT (Conservative Power Theory) parcels.
  *
  * https://ieeexplore.ieee.org/document/5638628
  *
