@@ -1,5 +1,5 @@
 /*
- * psim.h
+ * cpt.hpp
  *
  *  Created on: 25 de jun. de 2023
  *      Author: marcos
@@ -17,8 +17,19 @@
  * @tparam PHASES Number of phases
  * @tparam SAMPLING_RATE Sampling rate
  * @tparam FREQ Mains frequency
+ * @tparam T1 Type for output numbers
+ * @tparam T2 Type for input numbers
+ *
+ *     The type for output numbers (T1) can be float or double depending on
+ * the tradeoff between performance and accuracy.
+ * 	   A good choice may be int or long long for data acquired from ADC
+ * since float types do not behave well when they are added.
+ *
+ * 	   A good choice for the type for input numbers (T2) may be short int 
+ * or int for data acquired from ADC since float types do not behave well 
+ * when they are added.
 **/
-template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ> class CPT {
+template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ, typename T1 = double, typename T2 = double> class CPT {
 public:
 	/** Class for manipulating arrays. **/
 	template<typename Z, size_t N> struct Array {
@@ -155,21 +166,11 @@ public:
 		Z data[N];
 	};
 
-	/** Type for output numbers.
-	 *
-	 *     This number can be float or double depending on the tradeoff between
-	 * performance and accuracy.
-	 * 	   A good choice may be int or long long for data acquired from ADC
-	 * since float types do not behave well when they are added.
-	**/
-	typedef double output_number;
+	/** Type for output numbers. **/
+	typedef T1 output_number;
 
-	/** Type for input numbers.
-	 *
-	 * 	   A good choice may be short int or int for data acquired from ADC
-	 * since float types do not behave well when they are added.
-	**/
-	typedef double input_number;
+	/** Type for input numbers. **/
+	typedef T2 input_number;
 
 	/** Type for storing final values. **/
 	typedef Array<output_number, PHASES> power_vector;
