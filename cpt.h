@@ -458,7 +458,7 @@ public:
 
 		validate(r.t.V);
 
-		if (PHASES > 1) {
+		if constexpr (PHASES > 1) {
 			// Compute instantaeous balanced active current per phase
 			r.iba = u * r.P.sum() / sq_UT;
 
