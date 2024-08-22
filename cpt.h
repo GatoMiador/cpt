@@ -9,6 +9,7 @@
 #define CPT_H_
 
 #include <math.h>
+#include <algorithm>
 
 /** Calculates de CPT (Conservative Power Theory) parcels.
  *
@@ -539,6 +540,22 @@ public:
 
 		return r;
 	};
+
+	/** Helper function that feeds and computes the RMS of a Moving Average
+	 * class.
+	 *
+	 * @param sq MAF with past data
+	 * @param v Input value
+	 * @return The computed RMS
+	**/
+	static power_vector rms(MAF<> & sq, const power_vector & v) noexcept {
+		power_vector r;
+		std::transform(v.begin(), v.end(), r.begin(), [] (const auto n) { return n * n; } );
+		r = sq.feed(r).result();
+		std::for_each(r.begin(), r.end(), [] (auto &n) { n = sqrt(n); } );
+
+		return r;
+	}
 };
 
 #endif /* CPT_H_ */
