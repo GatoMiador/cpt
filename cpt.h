@@ -321,10 +321,10 @@ public:
 
 	/** Results of CPT calculation. **/
 	struct Result {
-		/** Instantaeous active power per phase. **/
+		/** Instantaeous power per phase. **/
 		power_vector p;
 
-		/** Average active power per phase. **/
+		/** Average power per phase. **/
 		power_vector P;
 
 		/** Instantaeous reactive energy per phase. **/
@@ -400,10 +400,10 @@ public:
 		r.u = u;
 		r.i = i;
 
-		// Compute the instantaeous active power per phase
+		// Compute the instantaeous power per phase
 		r.p = u * i;
 
-		// Compute the average active power per phase
+		// Compute the average power per phase
 		r.P = p.feed(r.p).result();
 
 		//! Compute the unbiased integral of the voltage
