@@ -18,6 +18,7 @@
  * @tparam PHASES Number of phases
  * @tparam SAMPLING_RATE Sampling rate
  * @tparam FREQ Mains frequency
+ * @tparam FILTER Signal filter
  * @tparam T1 Type for output numbers
  * @tparam T2 Type for input numbers
  *
@@ -30,7 +31,7 @@
  * or int for data acquired from ADC since float types do not behave well 
  * when they are added.
 **/
-template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ, typename T1 = double, typename T2 = double> class CPT {
+template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ, unsigned int FILTER = 1, typename T1 = double, typename T2 = double> class CPT {
 public:
 	/** Class for manipulating arrays. **/
 	template<typename Z, size_t N> struct Array {
@@ -226,7 +227,7 @@ public:
 		}
 	private:
 		C2 full { 0 };
-		C1 data[SAMPLING_RATE/FREQ] { 0 };
+		C1 data[SAMPLING_RATE*FILTER/FREQ] { 0 };
 		size_t index = 0;
 	};
 
@@ -250,7 +251,7 @@ public:
 
 		/** Returns the last result of the MAF filter. **/
 		power_vector result(void) const noexcept {
-			const auto r = (val - maf.result() ) * 2 * M_PI * FREQ / (2 * SAMPLING_RATE);
+			const auto r = (val - maf.result() ) * 2 * M_PI * FREQ / (2 * FILTER*SAMPLING_RATE);
 
 			return power_vector(r);
 		}
