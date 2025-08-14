@@ -425,7 +425,7 @@ public:
 		// Compute the instantaeous active current per phase
 		r.ia = r.P * u / sq_U;
 
-		// Validate ia because it is possible generation an invalid value
+		// Validate ia because it is possible to generate an invalid value
 		validate(r.ia);
 
 		//! Compute the mean square of the unbiased integral of the voltage
@@ -434,7 +434,7 @@ public:
 		// Compute the instantaeous reactive current per phase
 		r.ir = r.W * _ui / sq_Ui;
 
-		// Validate ia because it is possible generation an invalid value
+		// Validate ir because it is possible to generate an invalid value
 		validate(r.ir);
 
 		// Compute instantaeous void current per phase.
