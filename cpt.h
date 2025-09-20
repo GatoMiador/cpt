@@ -11,6 +11,150 @@
 #include <math.h>
 #include <algorithm>
 
+//! @brief Concepts used by the CPT and the default configuation
+namespace CPTconcepts {
+	/** Results of CPT calculation. **/
+	template<typename power_vector, typename output_vector>
+	struct CPTResult {
+		/** Instantaeous power per phase. **/
+		power_vector p;
+
+		/** Average power per phase. **/
+		power_vector P;
+
+		/** Instantaeous reactive energy per phase. **/
+		power_vector w;
+
+		/** Average reactive energy per phase. **/
+		power_vector W;
+
+		/** Instantaeous voltage per phase. **/
+		power_vector u;
+
+		/** RMS of the voltage. **/
+		power_vector U;
+
+		/** Instantaeous current per phase. **/
+		power_vector i;
+
+		/** Instantaeous active current per phase. **/
+		power_vector ia;
+
+		/** Instantaeous reactive current per phase. **/
+		power_vector ir;
+
+		/** Instantaeous void current per phase. **/
+		power_vector iv;
+
+		/** Instantaeous balanced active current per phase. **/
+		power_vector iba;
+
+		/** Instantaeous balanced reactive current per phase. **/
+		power_vector ibr;
+
+		/** Instantaeous unbalanced active current per phase. **/
+		power_vector iua;
+
+		/** Instantaeous unbalanced reactive current per phase. **/
+		power_vector iur;
+
+		struct Totals {
+			/** Overall active power. **/
+			output_vector P;
+
+			/** Overall reactive power. **/
+			output_vector Q;
+
+			/** Overall unbalance power. **/
+			output_vector N;
+
+			/** Overall void power. **/
+			output_vector V;
+
+			/** Overall apparent power. **/
+			output_vector A;
+
+			/** Reactivity factor. **/
+			output_vector rf;
+
+			/** Unbalance factor. **/
+			output_vector uf;
+
+			/** Non linearity factor. **/
+			output_vector df;
+
+			/** Power factor. **/
+			output_vector pf;
+		} t;
+	};
+
+    template <typename T>
+    concept HasMember_p = requires(T t) { t.p; };
+
+	template <typename T>
+    concept HasMember_P = requires(T t) { t.P; };
+
+    template <typename T>
+    concept HasMember_w = requires(T t) { t.w; };
+
+	template <typename T>
+    concept HasMember_W = requires(T t) { t.W; };
+
+    template <typename T>
+    concept HasMember_u = requires(T t) { t.u; };
+
+    template <typename T>
+    concept HasMember_U = requires(T t) { t.U; };
+
+    template <typename T>
+    concept HasMember_i = requires(T t) { t.i; };
+
+	template <typename T>
+    concept HasMember_ia = requires(T t) { t.ia; };
+
+	template <typename T>
+    concept HasMember_ir = requires(T t) { t.ir; };
+
+	template <typename T>
+    concept HasMember_iv = requires(T t) { t.iv; };
+
+	template <typename T>
+    concept HasMember_iba = requires(T t) { t.iba; };
+
+	template <typename T>
+    concept HasMember_ibr = requires(T t) { t.ibr; };
+
+	template <typename T>
+    concept HasMember_iua = requires(T t) { t.iua; };
+
+	template <typename T>
+    concept HasMember_iur = requires(T t) { t.iur; };
+
+	template <typename T>
+    concept HasMember_Q = requires(T t) { t.Q; };
+
+	template <typename T>
+    concept HasMember_N = requires(T t) { t.N; };
+
+	template <typename T>
+    concept HasMember_V = requires(T t) { t.V; };
+
+	template <typename T>
+    concept HasMember_A = requires(T t) { t.A; };
+
+	template <typename T>
+    concept HasMember_rf = requires(T t) { t.rf; };
+
+	template <typename T>
+    concept HasMember_uf = requires(T t) { t.uf; };
+
+	template <typename T>
+    concept HasMember_df = requires(T t) { t.df; };
+
+	template <typename T>
+    concept HasMember_pf = requires(T t) { t.pf; };
+};
+
 /** Calculates de CPT (Conservative Power Theory) parcels.
  *
  * https://ieeexplore.ieee.org/document/5638628
@@ -21,6 +165,7 @@
  * @tparam FILTER Signal filter
  * @tparam T1 Type for output numbers
  * @tparam T2 Type for input numbers
+ * @tparam CFG Configuration class
  *
  *     The type for output numbers (T1) can be float or double depending on
  * the tradeoff between performance and accuracy.
@@ -31,7 +176,7 @@
  * or int for data acquired from ADC since float types do not behave well 
  * when they are added.
 **/
-template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ, unsigned int FILTER = 1, typename T1 = double, typename T2 = double> class CPT {
+template<unsigned int PHASES, unsigned int SAMPLING_RATE, unsigned int FREQ, unsigned int FILTER = 1, typename T1 = double, typename T2 = double, template<typename, typename> class CFG = CPTconcepts::CPTResult> class CPT {
 public:
 	/** Class for manipulating arrays. **/
 	template<typename Z, size_t N> struct Array {
@@ -202,6 +347,8 @@ public:
 	**/
 	template<typename C1 = power_vector, typename C2 = power_double_vector>  class MAF {
 	public:
+		using value_type = C1;
+
 		/** Inputs data and calculate the new MAF value
 		 *
 		 * @param v Input values
@@ -234,12 +381,14 @@ public:
 	/** Computes the unbiased integral. **/
 	class UIntegral {
 	public:
+		using value_type = power_vector;
+
 		/** Inputs data and calculate the new integral value
 		 *
 		 * @param v Input values
 		 * @return This class for chaining purposes
 		**/
-		UIntegral & feed(const power_vector & v) noexcept {
+		UIntegral & feed(const value_type & v) noexcept {
 			const auto r = decltype(val)(v);
 
 			val += r + old_sample;
@@ -250,10 +399,10 @@ public:
 		}
 
 		/** Returns the last result of the MAF filter. **/
-		power_vector result(void) const noexcept {
+		value_type result(void) const noexcept {
 			const auto r = (val - maf.result() ) * 2 * M_PI * FREQ / (2 * FILTER*SAMPLING_RATE);
 
-			return power_vector(r);
+			return value_type(r);
 		}
 	private:
 		power_double_vector old_sample { 0 };
@@ -319,225 +468,243 @@ private:
 	/** Stores the square of the RMS of the unbalanced reactive current. **/
 	MAF<> sq_iur;
 public:
+	/** Type for the result (configurable). **/
+	using Result  = CFG<power_vector, output_number>;
 
-	/** Results of CPT calculation. **/
-	struct Result {
-		/** Instantaeous power per phase. **/
-		power_vector p;
-
-		/** Average power per phase. **/
-		power_vector P;
-
-		/** Instantaeous reactive energy per phase. **/
-		power_vector w;
-
-		/** Average reactive energy per phase. **/
-		power_vector W;
-
-		/** Instantaeous voltage per phase. **/
-		power_vector u;
-
-		/** RMS of the voltage. **/
-		power_vector U;
-
-		/** Instantaeous current per phase. **/
-		power_vector i;
-
-		/** Instantaeous active current per phase. **/
-		power_vector ia;
-
-		/** Instantaeous reactive current per phase. **/
-		power_vector ir;
-
-		/** Instantaeous void current per phase. **/
-		power_vector iv;
-
-		/** Instantaeous balanced active current per phase. **/
-		power_vector iba;
-
-		/** Instantaeous balanced reactive current per phase. **/
-		power_vector ibr;
-
-		/** Instantaeous unbalanced active current per phase. **/
-		power_vector iua;
-
-		/** Instantaeous unbalanced reactive current per phase. **/
-		power_vector iur;
-
-		struct Totals {
-			/** Overall active power. **/
-			output_number P;
-
-			/** Overall reactive power. **/
-			output_number Q;
-
-			/** Overall unbalance power. **/
-			output_number N;
-
-			/** Overall void power. **/
-			output_number V;
-
-			/** Overall apparent power. **/
-			output_number A;
-
-			/** Reactivity factor. **/
-			output_number rf;
-
-			/** Unbalance factor. **/
-			output_number uf;
-
-			/** Non linearity factor. **/
-			output_number df;
-
-			/** Power factor. **/
-			output_number pf;
-		} t;
-	};
-
-	struct Result feed(const power_vector & u, const power_vector & i) noexcept {
-		struct Result r;
+	/** @brief Feed data to the CPT object
+	 *
+	 * @param u Voltage data
+	 * @param i Current data
+	 * @return The result of the calculation
+	**/
+	Result feed(const power_vector & u, const power_vector & i) noexcept {
+		Result r;
 
 		// Just copy these values
-		r.u = u;
-		r.i = i;
+		if constexpr (CPTconcepts::HasMember_u<decltype(r)>)
+			r.u = u;
+		if constexpr (CPTconcepts::HasMember_i<decltype(r)>)
+			r.i = i;
 
 		// Compute the instantaeous power per phase
-		r.p = u * i;
+		if constexpr (CPTconcepts::HasMember_p<decltype(r)>)
+			r.p = u * i;
 
 		// Compute the average power per phase
-		r.P = p.feed(r.p).result();
+		if constexpr (CPTconcepts::HasMember_P<decltype(r)>)
+			r.P = p.feed(r.p).result();
 
 		//! Compute the unbiased integral of the voltage
-		const auto _ui = ui.feed(u).result();
+		typename decltype(ui)::value_type _ui;
+		if constexpr ( (CPTconcepts::HasMember_w<decltype(r)>)  || 
+					   (CPTconcepts::HasMember_ir<decltype(r)>) || 
+					   (CPTconcepts::HasMember_ibr<decltype(r)>)
+					 )
+			_ui = ui.feed(u).result();
+		else
+			_ui = { };
 
 		// Compute the instantaeous reactive energy per phase
-		r.w = _ui * i;
+		if constexpr (CPTconcepts::HasMember_w<decltype(r)>)
+			r.w = _ui * i;
 
 		// Compute the average active power per phase
-		r.W = w.feed(r.w).result();
+		if constexpr (CPTconcepts::HasMember_W<decltype(r)>)
+			r.W = w.feed(r.w).result();
 
 		//! Compute mean square of voltage
-		const auto sq_U = sq_u.feed(u * u).result();
+		typename decltype(sq_u)::value_type sq_U;
+		if constexpr ( (CPTconcepts::HasMember_U<decltype(r)>) || 
+					   (CPTconcepts::HasMember_ia<decltype(r)>) || 
+					   (CPTconcepts::HasMember_iba<decltype(r)>) || 
+					   (CPTconcepts::HasMember_V<decltype(r.t)>) || 
+					   (CPTconcepts::HasMember_P<decltype(r.t)>) || 
+					   (CPTconcepts::HasMember_Q<decltype(r.t)>) || 
+					   (CPTconcepts::HasMember_N<decltype(r.t)>)
+					 )
+			sq_U = sq_u.feed(u * u).result();
+		else
+			sq_U = { };
 
 		// Compute the RMS voltage
-		r.U = sqrtm(sq_U);
+		if constexpr (CPTconcepts::HasMember_U<decltype(r)>)
+			r.U = sqrtm(sq_U);
 
 		// Compute the instantaeous active current per phase
-		r.ia = r.P * u / sq_U;
+		if constexpr (CPTconcepts::HasMember_ia<decltype(r)>) {
+			r.ia = r.P * u / sq_U;
 
-		// Validate ia because it is possible to generate an invalid value
-		validate(r.ia);
+			// Validate ia because it is possible to generate an invalid value
+			validate(r.ia);
+		}
 
 		//! Compute the mean square of the unbiased integral of the voltage
-		const auto sq_Ui = sq_ui.feed(_ui * _ui).result();
+		typename decltype(sq_ui)::value_type sq_Ui;
+		if constexpr ( (CPTconcepts::HasMember_ir<decltype(r)>) ||
+					   (CPTconcepts::HasMember_ibr<decltype(r)>)
+					 )
+			sq_Ui = sq_ui.feed(_ui * _ui).result();
+		else
+			sq_Ui = { };
 
 		// Compute the instantaeous reactive current per phase
-		r.ir = r.W * _ui / sq_Ui;
+		if constexpr (CPTconcepts::HasMember_ir<decltype(r)>) {
+			r.ir = r.W * _ui / sq_Ui;
 
-		// Validate ir because it is possible to generate an invalid value
-		validate(r.ir);
+			// Validate ir because it is possible to generate an invalid value
+			validate(r.ir);
+		}
 
-		// Compute instantaeous void current per phase.
-		/* FIXME - These subtractions are known to cause numeric errors when using floating point types,
-		 * alternative strategies are advised for these cases.
-		 * Void power and currents should be zero for some tests and they are not.
-		*/
-		r.iv = i - r.ia - r.ir;
+		if constexpr (CPTconcepts::HasMember_iv<decltype(r)>) {
+			// Compute instantaeous void current per phase.
+			/* FIXME - These subtractions are known to cause numeric errors when using floating point types,
+			* alternative strategies are advised for these cases.
+			* Void power and currents should be zero for some tests and they are not.
+			*/
+			r.iv = i - r.ia - r.ir;
+		}
 
 		//! Compute the total mean square of voltage
-		const auto sq_UT = sq_U.sum();
+		typename decltype(sq_U)::value_type sq_UT;
+		if constexpr ( (CPTconcepts::HasMember_iba<decltype(r)>) ||
+					   (CPTconcepts::HasMember_V<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_P<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_Q<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_N<decltype(r.t)>)
+					 )
+			sq_UT = sq_U.sum();
+		else
+			sq_UT = 0;
 
 		//! Compute the total root mean square of voltage
-		auto UT = sqrt(sq_UT);
+		decltype(sq_UT) UT;
+		if constexpr ( (CPTconcepts::HasMember_V<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_P<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_Q<decltype(r.t)>) ||
+					   (CPTconcepts::HasMember_N<decltype(r.t)>)
+					 ) {
+			UT = sqrt(sq_UT);
 
-		validate(UT);
-
-		//! Compute the mean square of the void current
-		const auto sq_iV = sq_iv.feed(r.iv * r.iv).result();
+			validate(UT);
+		} else 
+			UT = 0;
 
 		// Compute overall void power.
-		r.t.V = UT * sqrt(sq_iV.sum() );
+		if constexpr (CPTconcepts::HasMember_V<decltype(r.t)>) {
+			//! Compute the mean square of the void current
+			const auto sq_iV = sq_iv.feed(r.iv * r.iv).result();
 
-		validate(r.t.V);
+			r.t.V = UT * sqrt(sq_iV.sum() );
+
+			validate(r.t.V);
+		}
 
 		if constexpr (PHASES > 1) {
 			// Compute instantaeous balanced active current per phase
-			r.iba = u * r.P.sum() / sq_UT;
+			if constexpr (CPTconcepts::HasMember_iba<decltype(r)>) {
+				r.iba = u * r.P.sum() / sq_UT;
 
-			validate(r.iba);
-
-			//! Compute the total mean square of the unbiased integral of voltage
-			const auto sq_UiT = sq_Ui.sum();
+				validate(r.iba);
+			}
 
 			// Compute instantaeous balanced reactive current per phase
-			r.ibr = _ui * r.W.sum() / sq_UiT;
+			if constexpr (CPTconcepts::HasMember_ibr<decltype(r)>) {
+				//! Compute the total mean square of the unbiased integral of voltage
+				const auto sq_UiT = sq_Ui.sum();
 
-			validate(r.ibr);
+				r.ibr = _ui * r.W.sum() / sq_UiT;
+
+				validate(r.ibr);
+			}
 
 			// Compute instantaeous unbalanced active current per phase.
-			r.iua = r.ia - r.iba;
+			if constexpr (CPTconcepts::HasMember_iua<decltype(r)>)
+				r.iua = r.ia - r.iba;
 
 			// Compute instantaeous unbalanced reactive current per phase.
-			r.iur = r.ir - r.ibr;
+			if constexpr (CPTconcepts::HasMember_iur<decltype(r)>)
+				r.iur = r.ir - r.ibr;
 
 			// Compute overall active power.
-			r.t.P = UT * sqrt(sq_iba.feed(r.iba * r.iba).result().sum() );
+			if constexpr (CPTconcepts::HasMember_P<decltype(r.t)>) {
+				r.t.P = UT * sqrt(sq_iba.feed(r.iba * r.iba).result().sum() );
 
-			validate(r.t.P);
+				validate(r.t.P);
+			}
 
 			// Compute overall reactive power.
-			r.t.Q = UT * sqrt(sq_ibr.feed(r.ibr * r.ibr).result().sum() );
+			if constexpr (CPTconcepts::HasMember_Q<decltype(r.t)>) {
+				r.t.Q = UT * sqrt(sq_ibr.feed(r.ibr * r.ibr).result().sum() );
 
-			validate(r.t.Q);
-
-			const auto sq_iUa = sq_iua.feed(r.iua * r.iua).result();
-			const auto sq_iUr = sq_iur.feed(r.iur * r.iur).result();
+				validate(r.t.Q);
+			}
 
 			// Compute overall unbalance power.
-			r.t.N = UT * sqrt( (sq_iUa + sq_iUr).sum() );
+			if constexpr (CPTconcepts::HasMember_N<decltype(r.t)>) {
+				const auto sq_iUa = sq_iua.feed(r.iua * r.iua).result();
+				const auto sq_iUr = sq_iur.feed(r.iur * r.iur).result();
 
-			validate(r.t.N);
+				r.t.N = UT * sqrt( (sq_iUa + sq_iUr).sum() );
+
+				validate(r.t.N);
+			}
 
 			// Compute overall apparent power.
-			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
+			if constexpr (CPTconcepts::HasMember_A<decltype(r.t)>) {
+				r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N + r.t.V*r.t.V);
 
-			validate(r.t.A);
+				validate(r.t.A);
+			}
 
 			// Compute unbalance factor.
-			r.t.uf = r.t.N / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N);
+			if constexpr (CPTconcepts::HasMember_uf<decltype(r.t)>) {
+				r.t.uf = r.t.N / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.N*r.t.N);
 
-			validate(r.t.uf);
+				validate(r.t.uf);
+			}
 		} else {
 			// Compute overall active power.
-			r.t.P = UT * sqrt(sq_ia.feed(r.ia * r.ia).result().sum() );
+			if constexpr (CPTconcepts::HasMember_P<decltype(r.t)>) {
+				r.t.P = UT * sqrt(sq_ia.feed(r.ia * r.ia).result().sum() );
 
-			validate(r.t.P);
+				validate(r.t.P);
+			}
 
 			// Compute overall reactive power.
-			r.t.Q = UT * sqrt(sq_ir.feed(r.ir * r.ir).result().sum() );
+			if constexpr (CPTconcepts::HasMember_Q<decltype(r.t)>) {
+				r.t.Q = UT * sqrt(sq_ir.feed(r.ir * r.ir).result().sum() );
 
-			validate(r.t.Q);
+				validate(r.t.Q);
+			}
 
 			// Compute overall apparent power.
-			r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.V*r.t.V);
+			if constexpr (CPTconcepts::HasMember_A<decltype(r.t)>) {
+				r.t.A = sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q + r.t.V*r.t.V);
 
-			validate(r.t.A);
+				validate(r.t.A);
+			}
 		}
 
 		// Compute reactivity factor.
-		r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
+		if constexpr (CPTconcepts::HasMember_rf<decltype(r.t)>) {
+			r.t.rf = r.t.Q / sqrt(r.t.P*r.t.P + r.t.Q*r.t.Q);
 
-		validate(r.t.rf);
+			validate(r.t.rf);
+		}
 
 		// Compute non linearity factor.
-		r.t.df = r.t.V / r.t.A;
+		if constexpr (CPTconcepts::HasMember_df<decltype(r.t)>) {
+			r.t.df = r.t.V / r.t.A;
 
-		validate(r.t.df);
+			validate(r.t.df);
+		}
 
 		// Compute power factor.
-		r.t.pf = r.t.P / r.t.A;
+		if constexpr (CPTconcepts::HasMember_pf<decltype(r.t)>) {
+			r.t.pf = r.t.P / r.t.A;
 
-		validate(r.t.pf);
+			validate(r.t.pf);
+		}
 
 		return r;
 	};
