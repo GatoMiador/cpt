@@ -1,266 +1,152 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Python wrapper for the C++ implementation of the Conservative Power Theory
+(CPT) in cpt.h.
+
+https://ieeexplore.ieee.org/document/5638628
+
 Created on Sun Sep  17 14:18:26 2023
 
 @author: marcos
+
+Example
+-------
+>>> import numpy as np, cpt
+>>> c = cpt.CPT(channels=3, sampling_rate=12000, freq=60)
+>>> r = c.feed_block(u, i)                  # u, i: arrays of shape (N, 3)
+>>> r['totals']['P'][-1]                    # overall active power, last sample
+>>> r = c.feed_block(u, i, fields=['t.P', 't.Q'], step=200)   # once per cycle
 """
 
-import math
 import numpy as np
-np.seterr(divide='ignore', invalid='ignore')
+
+import _cpt
+
+#: Per phase quantities, in output order.
+PHASE_FIELDS = ('u', 'i', 'p', 'P', 'w', 'W', 'U', 'ia', 'ir', 'iv', 'iba', 'ibr', 'iua', 'iur')
+
+#: Overall quantities, in output order (selected as 't.<name>' in 'fields').
+TOTAL_FIELDS = ('P', 'Q', 'N', 'V', 'A', 'rf', 'uf', 'df', 'pf')
+
+#: Quantities defined only for polyphase systems.
+POLYPHASE_FIELDS = ('iba', 'ibr', 'iua', 'iur', 't.N', 't.uf')
+
+_DTYPES = {'double': np.float64, 'float': np.float32}
+
+
+def configurations():
+    """Returns the available configurations as (phases, sampling_rate, freq, dtype) tuples."""
+    return list(_cpt.configurations)
+
 
 class CPT:
-    class MAF():
-        def __init__(self, ch, cycles):
-            self.index = 0
-            self.full = [float(0)] * ch
-            self.moving = [[float(0)] * ch] * cycles
-            self.cycles = cycles
+    """Computes the CPT quantities for a stream of voltage and current samples.
 
-        def feed(self, n):
-            self.full = np.subtract(self.full, self.moving[self.index]).tolist()
-            self.full = np.add(self.full, n).tolist()
-            self.moving[self.index] = n
+    Parameters
+    ----------
+    channels : int
+        Number of phases (1 or 3).
+    sampling_rate : int
+        Sampling rate in Hz; must be one of the compiled configurations.
+    freq : int
+        Mains frequency in Hz (50 or 60).
+    dtype : str
+        'double' or 'float', the number type used by the C++ code.
 
-            self.index = self.index + 1
-            if self.index >= self.cycles:
-                self.index = self.index - self.cycles
-            return self
+    The averages use a moving window of one mains cycle
+    (sampling_rate / freq samples), so the results settle after two cycles.
+    """
 
-        def get(self):
-            return np.divide(self.full, self.cycles).tolist()
+    def __init__(self, channels=3, sampling_rate=61440, freq=60, dtype='double'):
+        if dtype not in _DTYPES:
+            raise ValueError(f"dtype must be one of {list(_DTYPES)}, not {dtype!r}")
 
-    class UIntegral(MAF):
-        def __init__(self, ch, cycles):
-            super().__init__(ch, cycles)
-            self.old_sample = [float(0)] * ch
-            self.val = [float(0)] * ch
+        name = f'CPT_{channels}_{sampling_rate}_{freq}_{dtype[0]}'
+        cls = getattr(_cpt, name, None)
+        if cls is None:
+            raise ValueError(
+                f'configuration not compiled: channels={channels}, sampling_rate={sampling_rate}, '
+                f'freq={freq}, dtype={dtype!r}; available: {configurations()}')
 
-        def feed(self, n):
-            self.val = np.add(np.add(self.val, n), self.old_sample).tolist()
-            self.old_sample = n
-            super().feed(self.val)
-            return self
+        self.channels = channels
+        self.sampling_rate = sampling_rate
+        self.freq = freq
+        self.dtype = _DTYPES[dtype]
+        self._core = cls()
 
-        def get(self):
-            return np.multiply( (np.subtract(self.val, super().get() ) ), 2 * np.pi / (2*self.cycles) ).tolist()
+    @property
+    def samples(self):
+        """Number of samples fed since construction or the last reset()."""
+        return self._core.samples
 
-    def __init__(self, channels=3, sampling_rate=61440, freq=60):
-        cycles = int(sampling_rate / freq)
-        	# Stores the unbiased integral (û) of the instantaneous voltage.
-        self.ui = self.UIntegral(channels, cycles)
-        # Stores the moving average of the instantaneous active power.
-        self.p = self.MAF(channels, cycles)
-        # Stores the moving average of the instantaneous active power.
-        self.w = self.MAF(channels, cycles)
-        # Stores the square of the RMS ||U|| of the voltage multiplied by the samples.
-        self.sq_u = self.MAF(channels, cycles)
-        # Stores the square of the RMS ||Û||  of the unbiased integral of the voltage multiplied by the samples.
-        self.sq_ui = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the active current.
-        self.sq_ia = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the reactive current.
-        self.sq_ir = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the void current.
-        self.sq_iv = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the balanced active current.
-        self.sq_iba = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the balanced active current.
-        self.sq_ibr = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the unbalanced active current.
-        self.sq_iua = self.MAF(channels, cycles)
-        # Stores the square of the RMS of the unbalanced reactive current.
-        self.sq_iur = self.MAF(channels, cycles)
+    def available(self):
+        """Names of the quantities this configuration computes ('t.' prefix for the overall ones)."""
+        return self._core.available()
 
-    def validatem(self, v):
-        for i in range(len(v)):
-            if math.isfinite(v[i]) == False:
-                v[i] = float(0)
-        return v
+    def reset(self):
+        """Clears the internal state, as if the object had just been created."""
+        self._core.reset()
 
-    def validate(self, v):
-        if math.isfinite(v) == False:
-            v = float(0)
-        return v
+    def _as_input(self, x):
+        a = np.asarray(x, dtype=self.dtype)
+        if a.ndim == 1 and self.channels == 1:
+            a = a.reshape(-1, 1)
+        if a.ndim != 2 or a.shape[1] != self.channels:
+            raise ValueError(f'expected shape (N, {self.channels}), got {np.shape(x)}')
+        return np.ascontiguousarray(a)
+
+    def feed_block(self, u, i, fields=None, step=1):
+        """Feeds a block of samples and returns the results as NumPy arrays.
+
+        Parameters
+        ----------
+        u, i : array_like
+            Voltages and currents, shape (N, channels); shape (N,) is accepted
+            for single phase.
+        fields : list of str, optional
+            Quantities to return, from PHASE_FIELDS and 't.' + TOTAL_FIELDS.
+            Default: all quantities the configuration computes.
+        step : int
+            Keeps one result every 'step' samples, counted from the first
+            sample fed (e.g. sampling_rate // freq for one result per cycle).
+            The state is updated with every sample either way.
+
+        Returns
+        -------
+        dict
+            'n': sample number of each row; one array of shape (rows, channels)
+            per phase quantity; 'totals': dict with one array of shape (rows,)
+            per overall quantity.
+        """
+        return self._core.feed_block(self._as_input(u), self._as_input(i), fields, int(step))
 
     def feed(self, u, i):
-        # Compute the instantaeous active power per phase
-        p = np.multiply(u, i).tolist()
+        """Feeds one sample per phase and returns the results as lists and floats.
 
-        # Compute the average active power per phase
-        Pp = self.p.feed(p).get()
+        Kept for compatibility with the former pure Python implementation;
+        feed_block() is much faster for more than a few samples. Quantities
+        not defined for single phase systems are returned as zeros.
+        """
+        u = np.asarray(u, dtype=self.dtype).reshape(1, self.channels)
+        i = np.asarray(i, dtype=self.dtype).reshape(1, self.channels)
+        r = self._core.feed_block(u, i)
 
-        # Compute the unbiased integral of the voltage
-        uui = self.ui.feed(u).get()
+        res = {k: r[k][0].tolist() if k in r else [0.0] * self.channels for k in PHASE_FIELDS}
+        res['totals'] = {k: float(r['totals'][k][0]) if k in r['totals'] else 0.0 for k in TOTAL_FIELDS}
+        return res
 
-        # Compute the instantaeous reactive energy per phase
-        w = np.multiply(uui, i).tolist()
-
-        # Compute the average active power per phase
-        W = self.w.feed(w).get()
-
-        # Compute mean square of voltage
-        sq_U = self.sq_u.feed(np.multiply(u, u) ).get()
-
-        # Compute the RMS voltage
-        U = np.sqrt(sq_U).tolist()
-
-        # Compute the instantaeous active current per phase
-        ia = np.divide(np.multiply(Pp, u), sq_U).tolist()
-
-        # Validate ia because it is possible generation an invalid value
-        ia = self.validatem(ia)
-
-        # Compute the mean square of the unbiased integral of the voltage
-        sq_Ui = self.sq_ui.feed(np.multiply(uui, uui) ).get()
-
-        # Compute the instantaeous reactive current per phase
-        ir = np.divide(np.multiply(W, uui), sq_Ui).tolist()
-
-        # Validate ia because it is possible generation an invalid value
-        ir = self.validatem(ir)
-
-        # Compute instantaeous void current per phase.
-        # FIXME - These subtractions are known to cause numeric errors when using floating point types,
-        # alternative strategies are advised for these cases.
-        # Void power and currents should be zero for some tests and they are not.
-        iv = np.subtract(np.subtract(i, ia), ir).tolist()
-
-        # Compute the total mean square of voltage
-        sq_UT = sum(sq_U)
-
-        # Compute the total root mean square of voltage
-        UT = np.sqrt(sq_UT)
-
-        UT = self.validate(UT)
-
-        # Compute the mean square of the void current
-        sq_iV = self.sq_iv.feed(np.multiply(iv, iv) ).get()
-
-        # Compute overall void power.
-        V = UT * np.sqrt(sum(sq_iV) )
-
-        V = self.validate(V)
-
-        if len(u) > 1:
-            # Compute instantaeous balanced active current per phase
-            iba = np.divide(np.multiply(u, sum(Pp) ), sq_UT).tolist()
-
-            iba = self.validatem(iba)
-
-            # Compute the total mean square of the unbiased integral of voltage
-            sq_UiT = sum(sq_Ui)
-
-            # Compute instantaeous balanced reactive current per phase
-            ibr = np.divide(np.multiply(uui, sum(W) ), sq_UiT).tolist()
-
-            ibr = self.validatem(ibr)
-
-            # Compute instantaeous unbalanced active current per phase.
-            iua = np.subtract(ia, iba).tolist()
-
-            # Compute instantaeous unbalanced reactive current per phase.
-            iur = np.subtract(ir, ibr).tolist()
-
-            # Compute overall active power.
-            P = UT * np.sqrt(sum(self.sq_iba.feed(np.multiply(iba, iba) ).get() ) )
-
-            P = self.validate(P)
-
-			# Compute overall reactive power.
-            Q = UT * np.sqrt(sum(self.sq_ibr.feed(np.multiply(ibr, ibr) ).get() ) )
-
-            Q = self.validate(Q)
-
-            sq_iUa = self.sq_iua.feed(np.multiply(iua, iua) ).get()
-            sq_iUr = self.sq_iur.feed(np.multiply(iur, iur) ).get()
-
-            # Compute overall unbalance power.
-            N = UT * np.sqrt(sum(np.add(sq_iUa, sq_iUr) ) )
-
-            N = self.validate(N)
-
-            # Compute overall apparent power.
-            A = np.sqrt(P*P + Q*Q + N*N + V*V)
-
-            A = self.validate(A)
-
-            # Compute unbalance factor.
-            uf = N / np.sqrt(P*P + Q*Q + N*N)
-
-            uf = self.validate(uf)
-        else:
-            # Compute overall active power.
-            P = UT * np.sqrt(sum(self.sq_ia.feed(np.multiply(ia, ia) ).get() ) )
-
-            P = self.validate(P)
-
-            # Compute overall reactive power.
-            Q = UT * np.sqrt(sum(self.sq_ir.feed(np.multiply(ir, ir) ).get() ) )
-
-            Q = self.validate(Q)
-
-            # Compute overall apparent power.
-            A = np.sqrt(P*P + Q*Q + V*V)
-
-            A = self.validate(A);
-
-        # Compute reactivity factor.
-        rf = Q / np.sqrt(P*P + Q*Q)
-
-        rf = self.validate(rf)
-
-        # Compute non linearity factor.
-        df = V / A
-
-        df = self.validate(df)
-
-        # Compute power factor.
-        pf = P / A;
-
-        pf = self.validate(pf);
-
-        totals = {
-            'P': P,   # Overall active power.
-            'Q': Q,   # Overall reactive power.
-            'N': N,   # Overall unbalance power.
-            'V': V,   # Overall void power.
-            'A': A,   # Overall apparent power.
-            'rf': rf, # Reactivity factor.
-            'uf': uf, # Unbalance factor.
-            'df': df, # Non linearity factor.
-            'pf': pf, # Power factor.
-        }
-
-        return \
-{'p': p,     # Instantaeous active power per phase.
- 'P': Pp,    # Average active power per phase.
- 'w': w,     # Instantaeous reactive energy per phase.
- 'W': W,     # Average reactive energy per phase.
- 'u': u,     # Instantaeous voltage per phase.
- 'U': U,     # RMS of the voltage.
- 'i': i,     # Instantaeous current per phase.
- 'ia': ia,   # Instantaeous active current per phase.
- 'ir': ir,   # Instantaeous reactive current per phase.
- 'iv': iv,   # Instantaeous void current per phase.
- 'iba': iba, # Instantaeous balanced active current per phase.
- 'ibr': ibr, # Instantaeous balanced reactive current per phase.
- 'iua': iua, # Instantaeous unbalanced active current per phase.
- 'iur': iur, # Instantaeous unbalanced reactive current per phase.
- 'totals' : totals
-}
 
 if __name__ == '__main__':
-    cpt = CPT()
-    angle = 0#-math.pi/2;
-    for i in range(4096):
-        va = 127*math.sqrt(2)*math.sin(2*math.pi*i/1024)
-        vb = 127*math.sqrt(2)*math.sin(2*math.pi*i/1024 - 2*math.pi/3)
-        vc = 127*math.sqrt(2)*math.sin(2*math.pi*i/1024 + 2*math.pi/3)
-        ia = 1*math.sqrt(2)*math.sin(2*math.pi*i/1024 + angle)
-        ib = 1*math.sqrt(2)*math.sin(2*math.pi*i/1024 - 2*math.pi/3 + angle)
-        ic = 1*math.sqrt(2)*math.sin(2*math.pi*i/1024 + 2*math.pi/3 + angle)
-        res = cpt.feed([va, vb, vc], [ia, ib, ic])
+    import math
 
-    print(res)
+    cpt = CPT()
+    n = np.arange(4096)
+    angle = 0  # -math.pi/2
+    phases = np.array([0, -2 * math.pi / 3, 2 * math.pi / 3])
+    theta = 2 * math.pi * n[:, None] / 1024 + phases
+    u = 127 * math.sqrt(2) * np.sin(theta)
+    i = 1 * math.sqrt(2) * np.sin(theta + angle)
+
+    res = cpt.feed_block(u, i)
+    print({k: float(v[-1]) for k, v in res['totals'].items()})

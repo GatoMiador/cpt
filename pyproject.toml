@@ -1,0 +1,28 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cpt"
+version = "0.2.0"
+description = "Conservative Power Theory (CPT): Python wrapper for the C++ implementation"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Marcos" }]
+requires-python = ">=3.9"
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/GatoMiador/cpt"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+# cpt.py is a single module, installed by CMakeLists.txt next to _cpt
+wheel.packages = []
+sdist.exclude = ["tests/*.psimsch", "tests/*.dll", "tests/.settings", "tests/.project", "tests/.cproject"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
